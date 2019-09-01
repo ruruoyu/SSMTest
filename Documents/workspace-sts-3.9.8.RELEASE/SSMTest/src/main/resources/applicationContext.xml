@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:cache="http://www.springframework.org/schema/cache"
+	xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+	xsi:schemaLocation="http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache-4.3.xsd
+		http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+<!-- 扫描基包，不包括controller -->
+<context:component-scan base-package="com.haina.ssm">
+	<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+</context:component-scan>
+
+<!-- 引入外部资源 -->
+<context:property-placeholder location="classpath:dbinfo.properties"/>
+<!--  配置数据源，引入c3p0数据库连接池作为数据源  -->
+<bean id="pooledDataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+<property name="driverClass" value="${driver}"/>
+<property name="jdbcUrl" value="${url}"/>
+<property name="user" value="${username}"/>
+<property name="password" value="${password}"/>
+</bean>
+
+<!-- spring整合mybatis -->
+<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+	<property name="configLocation" value="classpath:mybatis-config.xml"></property>
+	<property name="dataSource" ref="pooledDataSource"></property>
+	 <property name="mapperLocations" value="classpath:mappers/*.xml"></property> 
+</bean>
+
+<!-- 扫描mapper文件，和mappers中的xml文件进行映射 -->
+<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+<property name="basePackage" value="com.haina.ssm.dao"/>
+</bean>
+
+<!-- 配置事务管理 -->
+<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+<!-- 指定事务管理的数据源 -->
+	<property name="dataSource" ref="pooledDataSource"></property>
+</bean>
+<!--  配置参与事务的类 -->
+<aop:config>
+	<aop:pointcut expression="execution(* com.haina.ssm.service..*.*(..))" id="pointcut"/>
+	<aop:advisor advice-ref="txAdvice" pointcut-ref="pointcut"/>
+</aop:config>
+<tx:advice id="txAdvice" transaction-manager="transactionManager">
+<!--  tx:attribute标签所配置的是作为事务的方法的命名类型。 -->
+	<tx:attributes>
+		<tx:method name="*"/>
+		<tx:method name="get*" read-only="true"/>
+	</tx:attributes>
+</tx:advice>
+
+
+
+
+
+</beans>
